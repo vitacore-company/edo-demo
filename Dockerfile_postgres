@@ -1,0 +1,6 @@
+FROM postgres:14
+WORKDIR /scripts
+COPY ["./postgres_runner.sh", "/scripts/postgres_runner.sh"]
+RUN ["chmod", "+x", "/scripts/postgres_runner.sh"]
+COPY ["./db_config.sql", "/scripts/db_config.sql"]
+ENTRYPOINT ["/scripts/postgres_runner.sh"]

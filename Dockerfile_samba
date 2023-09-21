@@ -1,0 +1,13 @@
+FROM ubuntu:22.04
+RUN apt update
+RUN apt install samba -y
+COPY ./smb.conf /etc/samba/smb.conf
+WORKDIR /samba
+RUN mkdir -p private/Imports
+RUN groupadd smbgrp
+RUN useradd smbusr
+RUN usermod -aG smbgrp smbusr
+RUN usermod -aG root smbusr
+RUN chown smbusr:smbgrp -R /samba
+RUN chmod 777 -R /samba/private
+CMD (echo $PASS; echo $PASS) | smbpasswd -a -s smbusr && service smbd restart && tail -f /dev/null

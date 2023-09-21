@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  db:
+    build: 
+      context: .
+      dockerfile: Dockerfile_postgres
+    container_name: edotfoms_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data:rw
+    ports:
+      - "127.0.0.1:${PORT5432}:5432"
+    networks:
+      - edonet
+
+  edo_foms:
+    image: hooks.vitacore.ru/vitacore/edotfoms:${TAG}
+    container_name: edotfoms_app
+    environment:
+      - "ConnectionStrings__PostgreConnection=Host=db;Database=${POSTGRES_DB};Port=5432;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      - "AppConfiguration__Secret=7DE593F2-6266-455D-9D80-D477FE528AF5"
+      - "ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pem"
+      - "ASPNETCORE_Kestrel__Certificates__Default__KeyPath=/https/aspnetapp.key"
+      - ASPNETCORE_URLS=${ASPNETCORE_URLS}
+    volumes:
+      - "/etc/timezone:/etc/timezone:ro"
+      - ~/.aspnet/https:/https:rw
+      - edodata:/home/edo/Files:rw
+      - samba_dir:/home/edo/Files/Imports:rw
+    ports:
+      - "${PORT5005}:5005"
+      - "${PORT5006}:5006"
+    depends_on:
+      - db
+    restart: on-failure
+    networks:
+      - edonet
+
+  samba:
+    build:
+      context: .
+      dockerfile: Dockerfile_samba
+    container_name: edotfoms_samba
+    restart: unless-stopped
+    environment:
+      - "PASS=${SAMBA_PASS}"
+    volumes:
+      - samba_dir:/samba/private/Imports:rw
+    ports:
+      - "${PORT445}:445"
+      - "${PORT139}:139"
+      - "${PORT137}:137"
+      - "${PORT138}:138"
+    networks:
+      - edonet
+
+volumes:
+  pgdata:
+    name: edo_pgdata
+  edodata:
+    name: edo_edodata
+  samba_dir:
+    name: edo_samba_dir
+
+networks:
+  edonet:
+    driver: bridge
